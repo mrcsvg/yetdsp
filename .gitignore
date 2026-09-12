@@ -1,5 +1,6 @@
 # ── DADOS: nunca versionar microdado ────────────────────────────────
-data/
+data/**
+!data/**/
 !data/**/.gitkeep
 *.dbc
 *.dbf
@@ -17,6 +18,7 @@ data/
 
 # ── Saídas ─────────────────────────────────────────────────────────
 output/**
+!output/**/
 !output/**/.gitkeep
 
 # ── Segredos ───────────────────────────────────────────────────────
