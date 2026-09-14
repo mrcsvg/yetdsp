@@ -51,7 +51,11 @@ inconsistência do TWFE nesse caso. Sun & Abraham como robustez.
 - Efeitos fixos: município e mês-calendário
 - Grupo de comparação: `[ ]` not-yet-treated ou never-treated — justificar
 - Erros-padrão: `[ ]` cluster em município; considerar bootstrap wild
-- Janela de evento: `[ ]`
+- Janela de evento: `[ ]` **Restrição de dado a considerar antes de escolher:**
+  a frota municipal do Senatran só existe a partir de **julho/2016** (D-015).
+  Antes disso não há denominador para a taxa de motociclista, o que encurta a
+  janela pré-tratamento disponível. Municípios com entrada de plataforma antes
+  de 2016-07 não têm período pré observável com denominador.
 
 ## 6. Testes pré-declarados de falha do desenho
 

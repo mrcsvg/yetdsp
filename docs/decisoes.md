@@ -86,3 +86,51 @@ Registro datado de toda escolha metodológica com mais de uma alternativa defens
 **Data:** 2026-09-14
 **Decisão:** definição de caso em `src/ifode/cid.py`, download em `ifode.extract`, limpeza e agregação em `ifode.transform`, diagnóstico em `ifode.analyze`. `scripts/` só faz parsing de argumento, I/O e log.
 **Motivo:** a definição de caso é o artefato metodológico do projeto — precisa ser testável sem rede, citável por caminho de arquivo e revisável isoladamente. Enquanto morava dentro de um script, o teste a alcançava por `sys.path.insert`, e nada impedia que uma segunda cópia da regra do quarto dígito nascesse no script seguinte.
+
+## D-013 · A frota do denominador é a que casa com V20–V29, não a coluna `MOTOCICLETA`
+**Data:** 2026-09-14
+**Decisão:** o denominador de motociclista soma **`MOTOCICLETA` + `MOTONETA` + `CICLOMOTOR` + `SIDE-CAR`** do arquivo "Frota por Município e Tipo" do Senatran. `TRICICLO` e `QUADRICICLO` ficam de fora.
+**Motivo:** o denominador tem que casar com o numerador, e o numerador é V20–V29. A nota de inclusão do próprio CID-10 brasileiro resolve a questão:
+
+> **V20-V29** Motociclista traumatizado em um acidente de transporte
+> *Inclui:* bicicleta motorizada · motocicleta com "side-car" · **motoneta** · patinete motorizado
+> *Exclui:* **triciclo motorizado (V30-V39)** · veículo motorizado de três rodas (V30-V39)
+>
+> — DATASUS, CID-10 v2008
+
+Motoneta e side-car estão nomeados; ciclomotor é a "bicicleta motorizada"/moped da mesma lista. Triciclo é mandado explicitamente para V30–V39, que não é o desfecho deste projeto.
+**Magnitude, para não parecer detalhe:** em Curitiba, dezembro de 2023, `MOTOCICLETA` sozinha dá 170.754; a frota que corresponde a V20–V29 dá **204.058**. Usar a coluna óbvia inflaria a taxa em 19%, e no sentido conveniente.
+**Os dois erros possíveis andam em direções opostas e nenhum aparece no resultado:** usar só `MOTOCICLETA` subestima a exposição e infla a taxa; somar triciclo e quadriciclo conta veículo cujo acidente nunca entra no numerador. A regra mora em `src/ifode/frota.py`, num lugar só, com teste por tipo.
+
+## D-014 · Município do Senatran casa por tabela revisada, nunca por fuzzy match
+**Data:** 2026-09-14
+**Decisão:** a ponte entre o nome de município do Senatran e o código IBGE usa normalização exata (caixa alta, sem acento, sem pontuação) e, para o que sobra, uma **tabela fixa e revisada a mão** em `src/ifode/municipios.py`. Município não reconhecido é **reportado, nunca descartado nem chutado**.
+**Motivo:** a normalização exata casa 5.533 de 5.572 linhas (99,3%). As 39 sobras são de três tipos: grafia divergente (`LAGEDO`/`LAJEDO`, `PARATI`/`PARATY`, e um `BARAO D0 MONTE ALTO` com zero no lugar da letra O), truncamento em 30 caracteres (`VILA BELA DA SANTISSIMA TRINDA`), e **município renomeado**, com o Senatran carregando o nome antigo.
+**A evidência contra o fuzzy.** Rodamos `difflib` uma vez sobre as sobras, sob revisão, e ele **errou cinco** — todos do terceiro tipo, onde o nome novo não se parece com o velho:
+
+| Senatran | Fuzzy sugeriu | Correto |
+|---|---|---|
+| `SANTAREM` (PB) | Santo André | **Joca Claudino** (2513653) |
+| `SAO DOMINGOS DE POMBAL` (PB) | S. Domingos do Cariri | **São Domingos** (2513968) |
+| `FORTALEZA DO TABOCAO` (TO) | Porto Alegre do Tocantins | **Tabocão** (1708254) |
+| `SAO VALERIO DA NATIVIDADE` (TO) | Chapada da Natividade | **São Valério** (1720499) |
+| `BOA SAUDE` (RN) | — | **Januário Cicco** (2405306) |
+
+Um join errado num denominador não deixa rastro: a frota de um município entra na conta de outro e a taxa sai plausível e errada. Denominador que some deixa `NaN`, que se vê; denominador que casa errado, não.
+**Consequência operacional:** a tabela é revisável em diff, os testes fixam cada par, e `agregar_frota` grita quando o número de não-casados passa de 20 — sinal de que o layout mudou. Com os apelidos, 2016, 2019, 2023 e 2025 casam 5.570 de 5.570 municípios reais; a única sobra é `MUNICIPIO NAO INFORMADO`, que é exclusão deliberada.
+
+## D-015 · Cobertura dos denominadores: dois buracos a declarar
+**Data:** 2026-09-14
+**Decisão:** registrar como limitação, não contornar com imputação silenciosa.
+
+**1. Frota municipal só existe a partir de julho de 2016.** A página do Senatran de 2015 publica apenas "Frota por UF e Tipo de Veículo", sem abertura municipal; 2016 tem só julho a dezembro. A janela padrão do `Makefile` começava em 2015-01, o que dá 18 meses sem denominador de frota. **Isso encurta a janela pré-tratamento disponível para o V2** e precisa entrar na escolha da janela de evento do pré-registro (seção 5).
+
+**2. Estimativa populacional municipal não tem 2022 nem 2023.** O agregado 6579 do IBGE publica 2001–2021 e retoma em 2024: 2022 foi ano de Censo e a estimativa não foi divulgada. Quem precisar de 2022 tem que ir ao Censo, que é outra definição de população — encadear os dois sem dizer é comparar coisas diferentes. `ifode.extract.ibge.populacao` devolve os anos que faltaram em vez de omitir linha.
+
+**Por que não interpolar:** os dois buracos são no denominador. Interpolar população entre 2021 e 2024 embute a revisão do Censo 2022 como se fosse crescimento suave — em Curitiba a estimativa cai de 1.963.726 (2021) para 1.829.225 (2024), e essa queda é rebasing, não migração. Se a interpolação for feita depois, que seja declarada e testada contra a alternativa.
+
+## D-016 · Frota vem da página do Senatran, não do RENAVAM de dados abertos
+**Data:** 2026-09-14
+**Decisão:** a frota é lida de "Frota por Município e Tipo" (`gov.br/transportes`, ~1,2 MB/mês), não do dataset `registro-nacional-de-veiculos-automotores-renavam` do portal de dados abertos.
+**Motivo:** o dataset do portal traz `UF; Município; Marca Modelo; Ano Fabricação; Qtd. Veículos` — **sem coluna de tipo de veículo** — em ~136 MB por mês. Derivar "motocicleta" dali exigiria classificar dezenas de milhares de strings de marca/modelo em categorias, e o erro dessa classificação entraria direto no denominador, sem medida. O arquivo do Senatran já vem com uma coluna por tipo.
+**Nota de implementação:** o nome do arquivo não é chave — o mesmo relatório aparece como `frota_por_municipio_e_tipo-dez_16.xlsx`, `frota_munic_modelo_dezembro_2019.xls`, `FrotaporMunicipioetipoDEZEMBRO2025.xlsx` e `copy2_of_Frota_por_municipio_tipo_Maro_2025.xlsx`. O **rótulo do link** é estável, e é por ele que `ifode.extract.senatran` localiza o mês.

@@ -23,6 +23,29 @@ ano × mês × grupo de vítima.
 | `nexo_ocupacional` | int | `CAR_INT` em {03, 04} |
 | `car_int_preenchido` | int | `CAR_INT` com código do domínio (`01`–`06`). Branco e as sentinelas `00`/`99` **não** contam — ver D-011 |
 
+## Denominadores
+
+Vêm de `scripts/denominadores.py`, gravados em
+`data/painel/denominadores_municipio_mes.parquet` e juntados ao painel com
+`--painel`. Join à esquerda: o painel manda, e município-mês sem denominador
+fica `NA` — a taxa sai `NaN`, de propósito.
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `frota_moto` | int | `MOTOCICLETA + MOTONETA + CICLOMOTOR + SIDE-CAR` do Senatran. **Não** é a coluna `MOTOCICLETA` sozinha — ver D-013 |
+| `populacao` | int | Estimativa residente do IBGE, anual. **Sem 2022 e 2023** (D-015) |
+| `taxa_por_frota` | float | `100.000 × internacoes / frota_moto`. Denominador zero vira `NaN`, nunca infinito |
+| `taxa_por_populacao` | float | `100.000 × internacoes / populacao`. Controle, não desfecho principal |
+
+**Cobertura.** Frota municipal existe a partir de **julho/2016**; população não
+tem 2022 nem 2023. Os dois buracos são no denominador e estão declarados em
+D-015 — não são imputados.
+
+**O denominador certo é frota, não população** (D-003). Usar população confunde
+o efeito da plataforma com o crescimento da motorização. `taxa_por_populacao`
+existe para controle e para os grupos sem frota — ciclista não registra em
+RENAVAM.
+
 ## Leitura do quarto dígito
 
 `internacoes_transito` não sai de uma regra única sobre o quarto dígito. As

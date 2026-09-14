@@ -1,9 +1,11 @@
-.PHONY: help setup painel diagnostico lint test limpar
+.PHONY: help setup painel diagnostico denominadores lint test limpar
 
 PYTHON ?= python
 
 UFS   ?= PR SP BA
 INI   ?= 2015-01
+# frota municipal so existe a partir de 2016-07 (D-015)
+DEN_INI ?= 2016-07
 FIM   ?= 2025-12
 
 help:
@@ -17,6 +19,9 @@ painel: ## baixa SIH e monta o painel municipio x mes
 
 diagnostico: ## preenchimento do CAR_INT por ano (roda so com o painel ja pronto)
 	$(PYTHON) scripts/diagnostico_car_int.py
+
+denominadores: ## frota de moto (Senatran) e populacao (IBGE) -- so precisa de HTTPS
+	$(PYTHON) scripts/denominadores.py --inicio $(DEN_INI) --fim $(FIM)
 
 lint:
 	ruff check . && ruff format --check .
