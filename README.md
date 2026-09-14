@@ -23,7 +23,7 @@ O V1 não é piloto descartável: todo artefato que ele produz é insumo do V2. 
 
 ## Definição de caso
 
-CID-10, capítulo XX. O quarto dígito das categorias V10–V29 separa condutor de passageiro e trânsito de não-trânsito.
+CID-10, capítulo XX. O quarto dígito separa condutor de passageiro e trânsito de não-trânsito — mas **não com a mesma tabela em todas as categorias**. As terminais (V19, V29, V49) reaproveitam `.3`, `.6` e `.8` com outro sentido, e `.3` ali é acidente *não* de trânsito. Tabela completa em D-010; implementação em `src/ifode/cid.py`.
 
 | Grupo | CID-10 | Papel |
 |---|---|---|
@@ -36,14 +36,21 @@ Denominador de moto: frota RENAVAM municipal. **Bicicleta não tem denominador**
 ## Estrutura
 
 ```
-docs/          pré-projeto, inventário de fontes, dicionário do painel, decisões
+docs/                pré-projeto, inventário de fontes, dicionário do painel, decisões
 docs/pre-registro/   plano de análise (depositar no OSF antes de cruzar tratamento × desfecho)
-src/ifode/     pacote: extract / transform / analyze
-scripts/       entrypoints executáveis
-data/          NÃO VERSIONADO — ver docs/fontes-de-dados.md para reconstruir
-output/        tabelas e figuras geradas
+src/ifode/cid.py     definição de caso: grupos CID-10 e leitura do quarto dígito
+src/ifode/extract/   download das fontes — única camada que toca a rede
+src/ifode/transform/ limpeza, classificação e agregação do painel
+src/ifode/analyze/   diagnóstico e estimação
+scripts/             entrypoints executáveis (argumento, I/O e log — sem regra)
+data/                NÃO VERSIONADO — ver docs/anexo-a-inventario-fontes-de-dados.md
+output/              tabelas e figuras geradas
 tests/
 ```
+
+A definição de caso mora em `src/ifode/cid.py`, sozinha, sem pandas e sem rede.
+É o artefato que um revisor precisa conseguir ler inteiro sem abrir o pipeline —
+e o único lugar onde a regra existe.
 
 ## Reprodutibilidade
 
@@ -51,10 +58,17 @@ Nenhum dado vive neste repositório. Todas as fontes são públicas e baixáveis
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-make painel        # baixa SIH e monta o painel município × mês
-make diagnostico   # preenchimento do CAR_INT por ano
+make setup         # instala o pacote em modo editável + pre-commit
+make test          # roda sem rede e sem dado — a definição de caso é testável isolada
+make painel        # baixa SIH e monta o painel município × mês  (precisa de rede)
+make diagnostico   # preenchimento do CAR_INT por ano, UF e município
 ```
+
+`make diagnostico` lê o painel já montado e escreve `car_int_por_ano.csv`,
+`car_int_por_uf_ano.csv` e `car_int_por_municipio.csv` em `output/tabelas/`.
+
+Os alvos passam pelo interpretador ativo (`$(PYTHON)`, padrão `python`). Para
+apontar outro: `make test PYTHON=python3.11`.
 
 ## Duas regras do projeto
 

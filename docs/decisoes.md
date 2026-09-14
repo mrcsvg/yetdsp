@@ -57,3 +57,32 @@ Registro datado de toda escolha metodológica com mais de uma alternativa defens
 **Data:** 2026-09-12
 **Decisão:** nenhum arquivo de dado no git. O repositório carrega o código que reconstrói os dados.
 **Motivo:** volume, e o inventário de fontes já documenta órgão, formato e caminho de cada base — a reprodutibilidade vem de lá, não de um blob commitado.
+
+## D-010 · O quarto dígito tem duas estruturas, não uma
+**Data:** 2026-09-14
+**Decisão:** a leitura do quarto caractere do CID passa a depender da categoria. Categorias de colisão e não-colisão (V10–V18, V20–V28, V40–V48) seguem a estrutura padrão; as categorias "outros e não especificados" (V19, V29, V49) seguem a estrutura terminal, que reaproveita `.3`, `.6` e `.8` com outro sentido.
+
+| Dígito | Padrão (V20–V28) | Terminal (V29) |
+|---|---|---|
+| `.0` `.1` `.2` | condutor / passageiro / não esp., **não-trânsito** | idem, colisão com outro veículo a motor |
+| `.3` | pessoa ao embarcar ou desembarcar | **qualquer ocupante, acidente NÃO de trânsito** |
+| `.4` `.5` | condutor / passageiro, **trânsito** | idem |
+| `.6` | não existe | não especificado, **trânsito** |
+| `.8` | não existe | outros acidentes de transporte especificados |
+| `.9` | não especificado, **trânsito** | qualquer ocupante, **trânsito** não especificado |
+
+**Motivo:** a versão anterior aplicava uma regra única (`{3,4,5,6,7,8,9}` = trânsito) sobre o quarto dígito, independente da categoria. Isso classificava **V19.3, V29.3 e V49.3 como acidente de trânsito quando o CID-10 os define como explicitamente não-trânsito**. V29 é categoria de alto volume no SIH — é onde cai o registro sem detalhe do veículo antagonista —, então o erro não é marginal: contamina o numerador do desfecho principal e o do placebo em magnitudes diferentes, o que é pior que contaminar os dois igualmente.
+**Consequência:** `internacoes_transito` cai em relação ao que a versão anterior produziria. Qualquer número gerado antes desta data está inflado e não deve ser comparado com os novos.
+**Ponto em aberto — `.3` da estrutura padrão.** "Pessoa ao embarcar ou desembarcar" não traz a distinção trânsito/não-trânsito na definição da OMS. Adotamos **contar como trânsito**, seguindo a faixa `V20-V28[.3-.9]` da definição padrão do NCHS. É convenção, não definição: o painel traz `internacoes_embarque` isolando essas AIH para que a sensibilidade seja calculável sem reprocessar o SIH.
+**Alternativa rejeitada:** manter a regra única e tratar a diferença como ruído. Rejeitada porque o erro é sistemático por categoria, não aleatório, e V19/V29/V49 têm peso desigual entre os três grupos do desenho.
+
+## D-011 · `CAR_INT` em branco não é `CAR_INT` preenchido
+**Data:** 2026-09-14
+**Decisão:** `car_int_preenchido` conta apenas códigos do domínio (`01`–`06`). Ficam de fora string vazia e as sentinelas `00` e `99`, que circulam como "ignorado" em parte da série.
+**Motivo:** a versão anterior contava `CAR_INT.notna()`, e o campo em branco no arquivo RD chega como string vazia, não como nulo — passava por preenchido. Como a taxa de nexo é `nexo / car_int_preenchido` (ver D-008 e `docs/dicionario-painel.md`), um denominador inflado por brancos **subestima a subnotificação**, que é exatamente o achado do V1. O erro empurrava o resultado na direção conveniente, o que é o pior tipo.
+**A conferir antes de encadear a série:** se `00` e `99` de fato aparecem como sentinela nas competências mais antigas, ou se são código válido em alguma versão do layout. A lista está em `ifode.cid.CAR_INT_AUSENTE`, num lugar só, e é o que os testes cobrem.
+
+## D-012 · A lógica vive no pacote, o script é entrypoint
+**Data:** 2026-09-14
+**Decisão:** definição de caso em `src/ifode/cid.py`, download em `ifode.extract`, limpeza e agregação em `ifode.transform`, diagnóstico em `ifode.analyze`. `scripts/` só faz parsing de argumento, I/O e log.
+**Motivo:** a definição de caso é o artefato metodológico do projeto — precisa ser testável sem rede, citável por caminho de arquivo e revisável isoladamente. Enquanto morava dentro de um script, o teste a alcançava por `sys.path.insert`, e nada impedia que uma segunda cópia da regra do quarto dígito nascesse no script seguinte.

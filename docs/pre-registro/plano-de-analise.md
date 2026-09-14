@@ -29,6 +29,10 @@ por município (tratamento, construída — ver seção 4).
 | Ciclista | V10–V19 | Teste do mecanismo |
 | Ocupante de automóvel | V40–V49 | Placebo |
 
+A leitura do quarto dígito não é uniforme entre as categorias: V19, V29 e V49
+usam outra tabela, em que `.3` é acidente **não** de trânsito. A regra está em
+`src/ifode/cid.py` e a justificativa em D-010 (`docs/decisoes.md`).
+
 ## 4. Construção do tratamento
 
 `[ ]` Data de início de operação de cada plataforma em cada município.
