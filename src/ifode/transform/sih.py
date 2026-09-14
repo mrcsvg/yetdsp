@@ -1,0 +1,167 @@
+"""Normalizacao, classificacao e agregacao das AIH do SIH/SUS.
+
+Sem efeito colateral e sem rede: recebe DataFrame, devolve DataFrame. O
+download vive em `ifode.extract.sih`, a definicao de caso em `ifode.cid`.
+"""
+
+from __future__ import annotations
+
+import logging
+
+import numpy as np
+import pandas as pd
+
+from ifode import cid as cid_mod
+
+log = logging.getLogger("ifode.transform.sih")
+
+#: Colunas do arquivo RD que o projeto usa. Competencias antigas nao tem todas;
+#: `normalizar` avisa e segue com as que existem.
+COLS: list[str] = [
+    "N_AIH",
+    "MUNIC_RES",
+    "MUNIC_MOV",
+    "NASC",
+    "IDADE",
+    "COD_IDADE",
+    "SEXO",
+    "DT_INTER",
+    "DT_SAIDA",
+    "DIAS_PERM",
+    "UTI_MES_TO",
+    "MORTE",
+    "CAR_INT",
+    "DIAG_PRINC",
+    "DIAG_SECUN",
+    "VAL_TOT",
+    "VAL_SH",
+    "VAL_SP",
+    "CNES",
+    "ESPEC",
+    "PROC_REA",
+    "RACA_COR",
+]
+
+_COLS_TEXTO = (
+    "MUNIC_RES",
+    "MUNIC_MOV",
+    "DIAG_PRINC",
+    "DIAG_SECUN",
+    "CAR_INT",
+    "SEXO",
+    "CNES",
+    "PROC_REA",
+)
+_COLS_INT = ("DIAS_PERM", "UTI_MES_TO", "IDADE", "MORTE")
+_COLS_VALOR = ("VAL_TOT", "VAL_SH", "VAL_SP")
+_COLS_DATA = ("DT_INTER", "DT_SAIDA")
+
+#: COD_IDADE 4 = anos, 3 = meses, 2 = dias, 1 = horas.
+_COD_IDADE_ANOS = 4
+
+
+def normalizar(df: pd.DataFrame) -> pd.DataFrame:
+    """Padroniza nomes, tipos e a idade em anos completos."""
+    df = df.copy()
+    df.columns = [c.upper().strip() for c in df.columns]
+
+    faltando = [c for c in COLS if c not in df.columns]
+    if faltando:
+        log.warning("colunas ausentes nesta competencia: %s", faltando)
+    df = df[[c for c in COLS if c in df.columns]]
+
+    for c in _COLS_TEXTO:
+        if c in df:
+            df[c] = df[c].astype("string").str.strip()
+
+    for c in (*_COLS_INT, *_COLS_VALOR):
+        if c in df:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+
+    for c in _COLS_DATA:
+        if c in df:
+            df[c] = pd.to_datetime(df[c], format="%Y%m%d", errors="coerce")
+
+    if "COD_IDADE" in df and "IDADE" in df:
+        cod = pd.to_numeric(df["COD_IDADE"], errors="coerce")
+        # Menor de um ano vira 0 -- a unidade nao e ano, e a faixa de interesse
+        # do projeto (18-39) nao e afetada.
+        df["idade_anos"] = df["IDADE"].where(cod == _COD_IDADE_ANOS, 0)
+    elif "IDADE" in df:
+        df["idade_anos"] = df["IDADE"]
+    else:
+        df["idade_anos"] = pd.Series(np.nan, index=df.index, dtype="float64")
+
+    return df
+
+
+def classificar(df: pd.DataFrame) -> pd.DataFrame:
+    """Marca grupo de vitima, leitura do quarto digito e nexo ocupacional.
+
+    Devolve so as AIH dentro da definicao de caso -- as demais saem aqui.
+    """
+    df = df.copy()
+    cid = df["DIAG_PRINC"].astype("string").fillna("").str.upper()
+    cat3 = cid.str[:3]
+    dig4 = cid.str[3:4]
+
+    df["grupo"] = cat3.map(cid_mod.CATEGORIA_GRUPO).astype("object")
+    no_escopo = df["grupo"].notna()
+
+    # O quarto digito muda de sentido entre a estrutura padrao e a terminal
+    # (V19/V29/V49), por isso a regra nao pode ser uma mascara so. Ver ifode.cid.
+    terminal = cat3.isin(cid_mod.CATEGORIAS_TERMINAIS)
+    df["categoria_terminal"] = terminal & no_escopo
+    df["em_transito"] = no_escopo & np.where(
+        terminal,
+        dig4.isin(cid_mod.TRANSITO_TERMINAL),
+        dig4.isin(cid_mod.TRANSITO_PADRAO),
+    )
+    df["condutor_transito"] = no_escopo & dig4.isin(cid_mod.CONDUTOR_TRANSITO)
+    # `.3` da estrutura padrao entra em transito por convencao NCHS, nao por
+    # definicao. Isolado para a analise de sensibilidade.
+    df["embarque_desembarque"] = no_escopo & ~terminal & dig4.isin(cid_mod.EMBARQUE_DESEMBARQUE)
+
+    car_int = df["CAR_INT"] if "CAR_INT" in df else pd.Series(pd.NA, index=df.index, dtype="string")
+    df["car_int_label"] = car_int.map(cid_mod.CAR_INT_LABEL).fillna("desconhecido")
+    df["car_int_valido"] = car_int.map(cid_mod.car_int_preenchido).fillna(False).astype(bool)
+    df["nexo_ocupacional"] = car_int.isin(cid_mod.CAR_INT_OCUPACIONAL).fillna(False)
+
+    uti = df["UTI_MES_TO"] if "UTI_MES_TO" in df else pd.Series(0, index=df.index)
+    morte = df["MORTE"] if "MORTE" in df else pd.Series(0, index=df.index)
+    df["uti"] = pd.to_numeric(uti, errors="coerce").fillna(0) > 0
+    df["obito"] = pd.to_numeric(morte, errors="coerce").fillna(0) == 1
+
+    return df[no_escopo].copy()
+
+
+def agregar(df: pd.DataFrame, uf: str, ano: int, mes: int) -> pd.DataFrame:
+    """Agrega para municipio de residencia x competencia x grupo de vitima."""
+    df = df.assign(uf=uf, ano=ano, mes=mes)
+    sexo = df["SEXO"] if "SEXO" in df else pd.Series(pd.NA, index=df.index, dtype="string")
+    idade = df["idade_anos"]
+    df = df.assign(
+        _homem=(sexo == "1").fillna(False),
+        _faixa_18_39=idade.between(18, 39).fillna(False),
+    )
+
+    painel = (
+        df.groupby(["uf", "ano", "mes", "MUNIC_RES", "grupo"], dropna=False)
+        .agg(
+            internacoes=("N_AIH", "count"),
+            internacoes_condutor=("condutor_transito", "sum"),
+            internacoes_transito=("em_transito", "sum"),
+            internacoes_embarque=("embarque_desembarque", "sum"),
+            homens=("_homem", "sum"),
+            idade_media=("idade_anos", "mean"),
+            faixa_18_39=("_faixa_18_39", "sum"),
+            dias_perm_total=("DIAS_PERM", "sum"),
+            internacoes_uti=("uti", "sum"),
+            obitos=("obito", "sum"),
+            val_tot=("VAL_TOT", "sum"),
+            nexo_ocupacional=("nexo_ocupacional", "sum"),
+            car_int_preenchido=("car_int_valido", "sum"),
+        )
+        .reset_index()
+    )
+    return painel.rename(columns={"MUNIC_RES": "municipio_res"})
