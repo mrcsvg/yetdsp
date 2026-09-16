@@ -46,14 +46,20 @@ A espinha dorsal do projeto.
 
 É o único campo do SIH que marca nexo ocupacional. **Também é notoriamente mal preenchido**, e essa má qualidade é a H4 do pré-projeto — trate como achado, não como defeito. Medir a taxa de `CAR_INT` = 03/04 entre motociclistas com CID V20–V29 já é resultado publicável por si só.
 
-**Filtro de caso:** CID-10 V20 a V29 (motociclista traumatizado em acidente de transporte), com o quarto dígito distinguindo condutor de passageiro. Cruzar com o capítulo S/T da lesão.
+**Filtro de caso:** CID-10 V20 a V29 (motociclista traumatizado em acidente de transporte), com o quarto dígito distinguindo condutor de passageiro.
+
+**⚠️ Em qual campo.** O código V **não está no `DIAG_PRINC`**. A norma do SIH manda o diagnóstico principal trazer o *tipo de traumatismo* (capítulo XIX, S/T) e o secundário trazer a *origem* da causa (capítulo XX). Medido: filtrar `DIAG_PRINC` devolve **zero** AIH de motociclista em todo ano de 2016 a 2023, contra 107–145 mil por ano no campo certo. Na prática o código vive em `DIAGSEC1`, com cauda em `DIAGSEC2`–`DIAGSEC9`. Ver D-017.
 
 **Armadilhas:**
 - `VAL_TOT` é o valor pago pelo SUS, não o custo econômico. Deflacione e diga explicitamente que é limite inferior.
 - Município de residência ≠ município do acidente. Para entregador urbano isso costuma bater, mas em região metropolitana não.
 - Cobertura hospitalar muda ao longo do tempo. Controle por leitos SUS (CNES).
 
-**Ferramentas:** `PySUS` (Python), `microdatasus` (R), `read.dbc`. Base dos Dados tem versão tratada em BigQuery, útil para conferência mas com defasagem.
+**Ferramentas:** `PySUS` (Python), `microdatasus` (R), `read.dbc`.
+
+**Base dos Dados (BigQuery) — segunda fonte, testada.** `basedosdados.br_ms_sih.aihs_reduzidas`: 212,8 milhões de AIH, particionada por `ano` (2008–2024), 129,6 GB. Precisa de um projeto GCP só para faturar; o free tier de 1 TB/mês cobre a série inteira (cada ano sai em ~1–2 GB com seleção de coluna). Implementado em `ifode.extract.bigquery`.
+
+**O espelho não é o arquivo RD.** Cinco divergências medidas, todas produzindo erro silencioso — não exceção — se ignoradas: `carater_internacao` vem `1`–`6` e não `01`–`06`; `sexo_paciente` vem decodificado (`Masculino`); o CID vem partido em `_categoria` (3 caracteres) e `_subcategoria` (4); `sigla_uf` é INTEGER e está inteiramente nula; e `carater_internacao` aparece **100% preenchido, sem um único nulo**, quando o RD cru tem branco. A última é a que contamina resultado: **a taxa de preenchimento desta fonte não serve para reportar**. Tabela completa em D-018.
 
 ---
 

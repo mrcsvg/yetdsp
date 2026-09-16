@@ -23,7 +23,11 @@ O V1 não é piloto descartável: todo artefato que ele produz é insumo do V2. 
 
 ## Definição de caso
 
-CID-10, capítulo XX. O quarto dígito separa condutor de passageiro e trânsito de não-trânsito — mas **não com a mesma tabela em todas as categorias**. As terminais (V19, V29, V49) reaproveitam `.3`, `.6` e `.8` com outro sentido, e `.3` ali é acidente *não* de trânsito. Tabela completa em D-010; implementação em `src/ifode/cid.py`.
+CID-10, capítulo XX. Duas coisas que parecem detalhe e não são:
+
+**O código V não está no diagnóstico principal.** A norma do SIH põe a lesão (capítulo XIX, S/T) no principal e a causa externa no secundário. Filtrar `DIAG_PRINC` devolve zero AIH em todo ano da série — o filtro varre `DIAG_SECUN` → `DIAGSEC1..9` → `DIAG_PRINC` (D-017).
+
+**O quarto dígito não tem a mesma tabela em todas as categorias.** As terminais (V19, V29, V49) reaproveitam `.3`, `.6` e `.8` com outro sentido, e `.3` ali é acidente *não* de trânsito. V29 sozinha é 67% do desfecho, então isso move 6,3% dos casos (D-010). Implementação em `src/ifode/cid.py`.
 
 | Grupo | CID-10 | Papel |
 |---|---|---|
@@ -42,6 +46,7 @@ src/ifode/cid.py     definição de caso: grupos CID-10 e leitura do quarto díg
 src/ifode/frota.py   tipos de veículo do RENAVAM que correspondem a V20–V29
 src/ifode/municipios.py  ponte nome ↔ código IBGE, com a tabela de apelidos revisada
 src/ifode/extract/   download das fontes — única camada que toca a rede
+                     (sih.py = FTP DATASUS; bigquery.py = espelho Base dos Dados)
 src/ifode/transform/ limpeza, classificação e agregação do painel
 src/ifode/analyze/   diagnóstico e estimação
 scripts/             entrypoints executáveis (argumento, I/O e log — sem regra)

@@ -89,3 +89,30 @@ def amostra_car_int() -> pd.DataFrame:
             _aih("6", "V234", "00"),  # sentinela de ignorado
         ]
     )
+
+
+@pytest.fixture
+def amostra_realista() -> pd.DataFrame:
+    """Como o SIH realmente codifica: lesao no principal, causa no secundario.
+
+    A norma do SIH manda o capitulo XIX (S/T) para `DIAG_PRINC` e o capitulo XX
+    (V a Y) para o diagnostico secundario. No dado real do SIH o codigo V
+    aparece em `DIAGSEC1`. Ver D-017.
+    """
+    linhas = [
+        # lesao no principal, causa de moto em DIAGSEC1 -- o caso dominante
+        _aih("1", "S720", car_int="02") | {"DIAG_SECUN": "", "DIAGSEC1": "V234"},
+        # causa no DIAG_SECUN classico (layout antigo)
+        _aih("2", "S065", car_int="03") | {"DIAG_SECUN": "V299", "DIAGSEC1": ""},
+        # ciclista, causa mais adiante na lista
+        _aih("3", "S823", car_int="02")
+        | {"DIAG_SECUN": "S060", "DIAGSEC1": "", "DIAGSEC2": "V134"},
+        # auto placebo, com o V direto no principal (excecao permitida)
+        _aih("4", "V435", car_int="04") | {"DIAG_SECUN": "S320", "DIAGSEC1": ""},
+        # so lesao, nenhuma causa externa -- sai do escopo
+        _aih("5", "S720", car_int="02") | {"DIAG_SECUN": "T141", "DIAGSEC1": ""},
+    ]
+    df = pd.DataFrame(linhas)
+    for i in range(1, 10):
+        df[f"DIAGSEC{i}"] = df.get(f"DIAGSEC{i}", "")
+    return df
