@@ -173,7 +173,23 @@ Serve como desfecho alternativo e como placebo. O RENAEST depende de alimentaç�
 
 ### 3.2 RENAVAM — frota de veículos · **A-**
 
-Frota por UF, município e tipo de veículo, mensal. É o **denominador correto** para taxa de internação de motociclista — usar população em vez de frota é o caminho mais rápido de confundir o efeito com o crescimento da motorização. Mesmo portal do Senatran.
+Frota por UF, município e tipo de veículo, mensal. É o **denominador correto** para taxa de internação de motociclista — usar população em vez de frota é o caminho mais rápido de confundir o efeito com o crescimento da motorização.
+
+**Atenção: são duas fontes diferentes com o mesmo nome, e só uma serve.**
+
+| | Portal de dados abertos | Página de estatísticas do Senatran |
+|---|---|---|
+| Onde | `dados.transportes.gov.br`, dataset `registro-nacional-de-veiculos-automotores-renavam` | `gov.br/transportes/.../frota-de-veiculos-<ano>`, link "Frota por Município e Tipo" |
+| Colunas | UF; Município; **Marca Modelo**; Ano Fabricação; Qtd. | UF; Município; TOTAL; uma coluna **por tipo** (MOTOCICLETA, MOTONETA, CICLOMOTOR, SIDE-CAR, TRICICLO…) |
+| Tamanho | ~136 MB/mês (ZIP e RAR) | ~1,2 MB/mês (XLS/XLSX) |
+| Cobertura | maio/2013 → | **julho/2016** → |
+| Serve? | **Não** — sem coluna de tipo; derivar "motocicleta" exigiria classificar dezenas de milhares de strings de marca/modelo, com erro entrando direto no denominador | **Sim** |
+
+Implementado em `ifode.extract.senatran`. O nome do arquivo não é chave estável — o rótulo do link é. Ver D-016.
+
+**Município vem por nome, não por código IBGE**, e o nome carrega grafia divergente, truncamento em 30 caracteres e município renomeado. A ponte está em `ifode.municipios`, com tabela revisada a mão; ver D-014 para por que fuzzy match não serve aqui.
+
+**Cobertura é a limitação real:** a série municipal começa em julho/2016. Antes disso o Senatran só publica por UF (D-015).
 
 ### 3.3 PRF — acidentes em rodovias federais · **A**
 
@@ -235,7 +251,7 @@ Não está fechado — simplesmente não existe compilado. É o F3 do cronograma
 
 | Fonte | Órgão | Granularidade | Temporalidade | Status |
 |---|---|---|---|---|
-| Estimativas populacionais municipais | IBGE | Município | Anual | **A** |
+| Estimativas populacionais municipais | IBGE | Município | Anual — **sem 2022 e 2023** (D-015) | **A** |
 | Censo 2022 | IBGE | Setor censitário | Decenal | **A** |
 | PIB municipal | IBGE | Município | Anual, ~2 anos de defasagem | **A** |
 | Dados meteorológicos (chuva) | INMET | Estação | Diária/horária | **A** |

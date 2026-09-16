@@ -39,6 +39,8 @@ Denominador de moto: frota RENAVAM municipal. **Bicicleta não tem denominador**
 docs/                pré-projeto, inventário de fontes, dicionário do painel, decisões
 docs/pre-registro/   plano de análise (depositar no OSF antes de cruzar tratamento × desfecho)
 src/ifode/cid.py     definição de caso: grupos CID-10 e leitura do quarto dígito
+src/ifode/frota.py   tipos de veículo do RENAVAM que correspondem a V20–V29
+src/ifode/municipios.py  ponte nome ↔ código IBGE, com a tabela de apelidos revisada
 src/ifode/extract/   download das fontes — única camada que toca a rede
 src/ifode/transform/ limpeza, classificação e agregação do painel
 src/ifode/analyze/   diagnóstico e estimação
@@ -60,8 +62,9 @@ Nenhum dado vive neste repositório. Todas as fontes são públicas e baixáveis
 python -m venv .venv && source .venv/bin/activate
 make setup         # instala o pacote em modo editável + pre-commit
 make test          # roda sem rede e sem dado — a definição de caso é testável isolada
-make painel        # baixa SIH e monta o painel município × mês  (precisa de rede)
+make painel        # baixa SIH e monta o painel município × mês  (precisa de FTP do DATASUS)
 make diagnostico   # preenchimento do CAR_INT por ano, UF e município
+make denominadores # frota de moto (Senatran) e população (IBGE) — só HTTPS
 ```
 
 `make diagnostico` lê o painel já montado e escreve `car_int_por_ano.csv`,

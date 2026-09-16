@@ -1,0 +1,100 @@
+"""
+IBGE: lista de municipios e estimativa populacional municipal.
+
+API publica, sem chave, sobre HTTPS -- ao contrario do SIH, roda em qualquer
+ambiente com rede.
+
+**Buraco conhecido na serie.** O agregado 6579 (Populacao residente estimada)
+publica 2001-2021 e depois **pula 2022 e 2023**, voltando em 2024: 2022 foi ano
+de Censo e a estimativa nao foi divulgada para esses anos. Quem precisa de 2022
+tem que ir ao Censo (agregado proprio, outra definicao de populacao); 2023 nao
+tem estimativa oficial por municipio nesta serie. `populacao` reporta os anos
+que faltaram em vez de devolver linha faltando em silencio. Ver D-014.
+"""
+
+from __future__ import annotations
+
+import logging
+from urllib.parse import quote
+
+from ifode.extract._http import get_json as _get_json
+
+log = logging.getLogger("ifode.extract.ibge")
+
+BASE = "https://servicodados.ibge.gov.br"
+
+#: Populacao residente estimada, por municipio.
+AGREGADO_POPULACAO = "6579"
+VARIAVEL_POPULACAO = "9324"
+
+
+def _uf_de(municipio: dict) -> str | None:
+    """Sigla da UF. Municipio novo vem sem `microrregiao`, so com regiao imediata."""
+    for caminho in (
+        ("microrregiao", "mesorregiao", "UF"),
+        ("regiao-imediata", "regiao-intermediaria", "UF"),
+    ):
+        no = municipio
+        for chave in caminho:
+            no = (no or {}).get(chave)
+        if no:
+            return no["sigla"]
+    return None
+
+
+def listar_municipios() -> list[dict]:
+    """Todos os municipios: `{"id": 4106902, "nome": "Curitiba", "uf": "PR"}`."""
+    bruto = _get_json(f"{BASE}/api/v1/localidades/municipios")
+    municipios = [
+        {"id": int(m["id"]), "nome": m["nome"], "uf": _uf_de(m)}
+        for m in bruto
+        if _uf_de(m) is not None
+    ]
+    log.info("municipios IBGE: %d", len(municipios))
+    return municipios
+
+
+def periodos_disponiveis() -> list[str]:
+    """Anos que a serie de estimativa populacional realmente publica."""
+    url = f"{BASE}/api/v3/agregados/{AGREGADO_POPULACAO}/periodos"
+    return [str(p["id"]) for p in _get_json(url)]
+
+
+def populacao(anos: list[int] | list[str]) -> tuple[list[dict], list[str]]:
+    """Populacao estimada por municipio para os anos pedidos.
+
+    Devolve `(linhas, anos_sem_dado)`, com `linhas` no formato
+    `{"municipio_ibge": 4106902, "ano": 2021, "populacao": 1963726}`.
+
+    Os anos ausentes voltam na segunda posicao de proposito: 2022 e 2023 nao
+    existem nesta serie, e um denominador com buraco precisa gritar.
+    """
+    pedidos = [str(a) for a in anos]
+    disponiveis = set(periodos_disponiveis())
+    faltando = [a for a in pedidos if a not in disponiveis]
+    usar = [a for a in pedidos if a in disponiveis]
+    if faltando:
+        log.warning("sem estimativa populacional para: %s", ", ".join(faltando))
+    if not usar:
+        return [], faltando
+
+    periodo = quote("|".join(usar), safe="")
+    url = (
+        f"{BASE}/api/v3/agregados/{AGREGADO_POPULACAO}"
+        f"/periodos/{periodo}/variaveis/{VARIAVEL_POPULACAO}?localidades=N6[all]"
+    )
+    bruto = _get_json(url)
+
+    linhas: list[dict] = []
+    for variavel in bruto:
+        for resultado in variavel.get("resultados", []):
+            for serie in resultado.get("series", []):
+                codigo = int(serie["localidade"]["id"])
+                for ano, valor in serie.get("serie", {}).items():
+                    if valor in (None, "", "-", "..."):
+                        continue
+                    linhas.append(
+                        {"municipio_ibge": codigo, "ano": int(ano), "populacao": int(valor)}
+                    )
+    log.info("populacao: %d linhas para %s", len(linhas), ", ".join(usar))
+    return linhas, faltando
