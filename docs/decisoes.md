@@ -186,3 +186,41 @@ Em 2023 isoladamente: 145.761 internações de motociclista, **10** com nexo. O 
 **Magnitude do D-010 no dado real:** a regra achatada classificava 60.511 AIH como trânsito indevidamente em 2016–2023 (V29.3, 13.706; V29.8, 46.805) — 6,3% do desfecho. E V29 sozinha é 67% de todas as internações de motociclista, contra a expectativa de "categoria de alto volume" que o D-010 registrava sem número.
 
 Os três números carregam a ressalva do D-018: o denominador do preenchimento vem de fonte que não tem branco. A ordem de grandeza do nexo (dezenas, em centenas de milhares) não depende disso.
+
+## D-020 · Marketplace não é tratamento; a logística própria é
+**Data:** 2026-09-17
+**Decisão:** o evento de tratamento é **a data em que a plataforma passa a operar frota própria de entregadores remunerados por corrida naquele município** — não a data em que o aplicativo passou a atender a cidade.
+**Motivo:** a hipótese do projeto é sobre remuneração por peça criando incentivo à velocidade e ao volume. Isso pressupõe entregador da plataforma, pago por corrida. Entre 2011 e 2017 o iFood era **marketplace**: o pedido vinha pelo app, mas quem entregava era o motoboy do restaurante, remunerado pelo restaurante. A própria empresa data a virada:
+
+> "**It began deliveries in 2018; before then restaurants were responsible.**"
+> — iFood, release institucional (`institucional.ifood.com.br/releases/brazilian-delivery-group-ifood-corners-meals-market`)
+
+**Por que isso decide a viabilidade do V2.** O denominador de frota municipal só existe a partir de julho/2016 (D-015). Se o tratamento fosse "iFood existe na cidade", boa parte dos municípios estaria tratada antes do primeiro denominador e não haveria pré-período. Com o tratamento datado na logística própria, o marco nacional é 2018 — e o rollout municipal é escalonado:
+
+| | municípios atendidos |
+|---|---|
+| 2018 | início da operação própria |
+| 2019 | ~900 |
+| 2023–2025 | ~1.500 |
+| 2026 | ~1.700 |
+
+De **5.570 municípios**. Para os tratados a partir de 2020, o pré-período com denominador passa de três anos.
+
+**Variação de timing além do iFood**, com datas próprias a codificar: Rappi (~2017), Uber Eats (~2016, **saiu em março/2022**), 99Food (**novembro/2019, estreia em Belo Horizonte**; 59 cidades em janeiro/2022; saiu em 2023; retomou em agosto/2025), Keeta/Meituan (dezembro/2025), Loggi (expansão nacional 2018–2019). **As saídas são tratamento reverso** — Uber Eats e 99Food deixando municípios são variação rara e valiosa, e devem ser codificadas como evento próprio, não ignoradas.
+
+**Consequência operacional para o F3, e é séria:** a imprensa local noticia a chegada do *aplicativo*, não a da frota. Um release de 2016 dizendo "iFood chega a [cidade]" é marketplace, não tratamento. **Dois codificadores podem concordar com kappa alto sobre o evento errado.** O protocolo de codificação precisa da distinção explícita e de um critério de desempate documentado antes de começar — ver a seção 4 do plano de análise e o item 4.4 do Anexo A.
+
+## D-021 · O pré-período está parcialmente tratado
+**Data:** 2026-09-17
+**Decisão:** declarar, como limitação, que o período pré-tratamento não é livre de plataforma — apenas livre de *remuneração por corrida*.
+**Motivo:** o marketplace operou de 2011 a 2017. É plausível que ele já tenha elevado o volume de entregas por moto no município, ainda que o entregador fosse do restaurante e não remunerado por corrida. Isso vaza tratamento para o "antes".
+**Direção do viés:** atenuação. O contraste medido é "corrida avulsa" contra "marketplace", não contra "sem plataforma" — então o coeficiente subestima o efeito de plataformização em relação a um contrafactual sem nenhuma plataforma. **É a mesma direção do piso que o D-001 já declara, por um motivo diferente e adicional**, e as duas razões precisam aparecer separadas no paper: uma é diluição no universo de motociclistas, a outra é contaminação do período de comparação.
+**O que não fazer:** tratar a entrada do marketplace como um segundo evento e estimar os dois. Sem dado de volume de pedidos (lacuna 4.3, fechada), o marketplace não tem intensidade mensurável, e um evento sem intensidade num painel escalonado adiciona ruído sem identificar nada.
+
+## D-022 · Grupo de comparação é not-yet-treated
+**Data:** 2026-09-17
+**Decisão:** o grupo de comparação do estimador de Callaway & Sant'Anna é **not-yet-treated**, não never-treated. Resolve o `[ ]` da seção 5 do plano de análise.
+**Motivo:** os nunca tratados existem em volume — cerca de 3.900 dos 5.570 municípios nunca receberam operação própria de plataforma. Mas não são comparáveis: os tratados são urbanos e maiores, os nunca tratados são pequenos e rurais, por construção, porque é exatamente isso que determina a entrada da plataforma. **Comparar os dois compara urbanização, não plataforma** — e urbanização move motorização, tráfego e oferta hospitalar ao mesmo tempo, todos ligados ao desfecho.
+Not-yet-treated compara município tratado em `t` com município que será tratado depois, mantendo a comparação dentro da população que a plataforma considera atendível. O Callaway & Sant'Anna suporta isso nativamente e é a razão de ele ser o estimador principal.
+**Custo a declarar:** com a saturação crescendo ao longo da janela, o conjunto de not-yet-treated encolhe no fim do período, e os grupos tratados tardiamente têm comparação mais fina. Reportar o tamanho do grupo de comparação por coorte de tratamento, não só o efeito agregado.
+**Alternativa rejeitada:** never-treated como comparação principal. Rejeitada pelo confundimento de urbanização acima. Pode voltar como **robustez**, restrita a municípios nunca tratados pareados por porte populacional e frota — e se o resultado divergir do principal, é sinal de que a seleção urbana está ativa, o que é informação, não fracasso.

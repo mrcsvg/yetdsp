@@ -249,6 +249,20 @@ Vias possíveis, em ordem de viabilidade:
 
 Não está fechado — simplesmente não existe compilado. É o F3 do cronograma, 4 a 6 semanas de trabalho de arquivo com dupla codificação independente e cálculo de concordância entre codificadores. Fontes: releases das empresas, imprensa local, Wayback Machine sobre as páginas de cobertura, registros na Junta Comercial, prefeituras.
 
+**A data a codificar é a da frota própria, não a do aplicativo.** O iFood foi marketplace de 2011 a 2017 (entrega pelo motoboy do restaurante) e só passou a entregar com entregador da plataforma em 2018 — por declaração da própria empresa. Remuneração por corrida, que é o tratamento, começa aí. Um release de 2016 dizendo "iFood chega a [cidade]" **não é** tratamento. Ver D-020.
+
+**Marcos conhecidos, para ancorar a codificação:**
+
+| Plataforma | Entrada com frota própria | Saída |
+|---|---|---|
+| iFood | 2018 (nacional); ~900 municípios em 2019, ~1.500 em 2023, ~1.700 em 2026 | — |
+| Rappi | ~2017 | — |
+| Uber Eats | ~2016 | **março/2022** |
+| 99Food | **novembro/2019**, estreia em Belo Horizonte; 59 cidades em jan/2022 | 2023; retomou ago/2025 |
+| Keeta (Meituan) | dezembro/2025 | — |
+
+De 5.570 municípios, ~1.700 têm iFood hoje: a maioria do país nunca foi tratada, e o rollout é escalonado ao longo de mais de cinco anos. **As saídas são tratamento reverso** e devem ser codificadas como evento próprio.
+
 **Continua sendo o caminho crítico do projeto.**
 
 ---
