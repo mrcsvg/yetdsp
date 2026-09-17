@@ -42,14 +42,36 @@ def _uf_de(municipio: dict) -> str | None:
     return None
 
 
+def _regiao_imediata_de(municipio: dict) -> int | None:
+    """Codigo da regiao imediata do IBGE, ou None.
+
+    E o nivel de agrupamento dos erros-padrao (D-024): a geografia em que o
+    entregador e o paciente circulam, e onde `MUNIC_RES` diverge do municipio do
+    acidente. Presente nos 5.571 municipios; sao 510 regioes.
+    """
+    regiao = municipio.get("regiao-imediata") or {}
+    return int(regiao["id"]) if regiao.get("id") is not None else None
+
+
 def listar_municipios() -> list[dict]:
-    """Todos os municipios: `{"id": 4106902, "nome": "Curitiba", "uf": "PR"}`."""
+    """Todos os municipios, com UF e regiao imediata.
+
+    `{"id": 4106902, "nome": "Curitiba", "uf": "PR", "regiao_imediata": 410001}`
+    """
     bruto = _get_json(f"{BASE}/api/v1/localidades/municipios")
     municipios = [
-        {"id": int(m["id"]), "nome": m["nome"], "uf": _uf_de(m)}
+        {
+            "id": int(m["id"]),
+            "nome": m["nome"],
+            "uf": _uf_de(m),
+            "regiao_imediata": _regiao_imediata_de(m),
+        }
         for m in bruto
         if _uf_de(m) is not None
     ]
+    sem_regiao = sum(1 for m in municipios if m["regiao_imediata"] is None)
+    if sem_regiao:
+        log.warning("%d municipios sem regiao imediata -- cluster fica incompleto", sem_regiao)
     log.info("municipios IBGE: %d", len(municipios))
     return municipios
 

@@ -150,16 +150,29 @@ def juntar(painel: pd.DataFrame, frota: pd.DataFrame, populacao: pd.DataFrame) -
     return saida
 
 
-def taxas(painel: pd.DataFrame, por: int = 100_000) -> pd.DataFrame:
+#: Numerador do desfecho principal declarado no pre-registro (D-023). NAO e
+#: `internacoes`, que inclui as AIH de nao-transito, nem `internacoes_condutor`,
+#: que e 9,4% do desfecho e condiciona em pratica de codificacao.
+NUMERADOR_DESFECHO = "internacoes_transito"
+
+
+def taxas(painel: pd.DataFrame, por: int = 100_000, numerador: str = "internacoes") -> pd.DataFrame:
     """Taxa de internacao por `por` motos e por `por` habitantes.
+
+    `numerador` default e `internacoes` por compatibilidade, mas **a estimacao
+    usa `NUMERADOR_DESFECHO`** (`internacoes_transito`): o desfecho declarado e
+    acidente de transito, nao toda AIH do grupo. Passar a coluna errada aqui
+    produz taxa plausivel e errada, entao o nome e explicito.
 
     Denominador zero vira `NaN`, nunca infinito: municipio sem frota registrada
     nao tem taxa definida, e um infinito viaja silencioso ate a regressao.
     """
     saida = painel.copy()
+    if numerador not in saida.columns:
+        raise KeyError(f"painel sem a coluna de numerador {numerador!r}")
     moto = pd.to_numeric(saida.get(frota_mod.COLUNA_FROTA_MOTO), errors="coerce")
     pop = pd.to_numeric(saida.get("populacao"), errors="coerce")
-    internacoes = pd.to_numeric(saida["internacoes"], errors="coerce")
+    internacoes = pd.to_numeric(saida[numerador], errors="coerce")
 
     saida["taxa_por_frota"] = por * internacoes / moto.where(moto > 0)
     saida["taxa_por_populacao"] = por * internacoes / pop.where(pop > 0)
