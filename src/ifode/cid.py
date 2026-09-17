@@ -35,14 +35,27 @@ V49), que reaproveitam .3, .6 e .8 com outro sentido:
 A diferenca que importa: **`.3` e acidente de transito na estrutura padrao
 (embarque/desembarque, convencao NCHS) e explicitamente NAO-transito na
 estrutura terminal**, e `.6` so existe -- e so e transito -- na terminal.
-Uma regra unica sobre o quarto digito erra V19.3, V29.3 e V49.3, que no SIH
-brasileiro nao sao categorias raras. Ver D-010 em `docs/decisoes.md`.
+Uma regra unica sobre o quarto digito erra V19.3, V29.3 e V49.3, e no SIH
+brasileiro isso nao e detalhe: **V29 sozinha e 67% das internacoes de
+motociclista** (646.928 de 965.714 AIH, Brasil 2016-2023). A regra achatada
+classificava 60.511 AIH como transito indevidamente -- V29.3 (13.706, nao-
+transito explicito) e V29.8 (46.805, "outros acidentes de transporte
+especificados") --, 6,3% do desfecho. Ver D-010 em `docs/decisoes.md`.
 
 Referencia da faixa de transito: CDC/NCHS, definicao padrao de lesao de
 transito -- `V20-V28[.3-.9]`, `V29-V79[.4-.9]`, `V19[.4-.6]`.
+
+**A causa externa nao mora no diagnostico principal.** Pela norma do SIH/SUS, a
+internacao por causa externa leva no diagnostico principal o *tipo de
+traumatismo* (capitulo XIX, S e T) e no diagnostico secundario a *origem* da
+causa (capitulo XX, V a Y). Procurar V20-V29 em `DIAG_PRINC` devolve painel
+vazio -- medido: zero AIH em todo ano de 2016 a 2023, contra 107 mil a 145 mil
+por ano no campo certo. Ver D-017 e `primeira_causa_externa`.
 """
 
 from __future__ import annotations
+
+from collections.abc import Iterable
 
 # ---------------------------------------------------------------------------
 # Grupos de vitima
@@ -160,3 +173,26 @@ def car_int_preenchido(valor: str | None) -> bool:
     if codigo in CAR_INT_AUSENTE:
         return False
     return codigo in CAR_INT_LABEL
+
+
+# ---------------------------------------------------------------------------
+# Onde procurar a causa externa
+# ---------------------------------------------------------------------------
+
+
+def primeira_causa_externa(codigos: Iterable[str | None]) -> str | None:
+    """Primeiro codigo da sequencia que cai na definicao de caso.
+
+    Recebe os diagnosticos de uma AIH **na ordem de precedencia** e devolve o
+    primeiro que pertence a um dos grupos de `GRUPOS_CID`. None quando nenhum
+    pertence -- a AIH esta fora do escopo.
+
+    Por que "o primeiro que casa" e nao "o primeiro preenchido": o campo de
+    precedencia mais alta costuma trazer a lesao (`S720`), nao a causa. Parar
+    no primeiro campo nao nulo descartaria a AIH inteira por causa de um S no
+    caminho.
+    """
+    for codigo in codigos:
+        if codigo and grupo_de(codigo):
+            return codigo
+    return None

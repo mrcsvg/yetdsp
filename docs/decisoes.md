@@ -134,3 +134,55 @@ Um join errado num denominador não deixa rastro: a frota de um município entra
 **Decisão:** a frota é lida de "Frota por Município e Tipo" (`gov.br/transportes`, ~1,2 MB/mês), não do dataset `registro-nacional-de-veiculos-automotores-renavam` do portal de dados abertos.
 **Motivo:** o dataset do portal traz `UF; Município; Marca Modelo; Ano Fabricação; Qtd. Veículos` — **sem coluna de tipo de veículo** — em ~136 MB por mês. Derivar "motocicleta" dali exigiria classificar dezenas de milhares de strings de marca/modelo em categorias, e o erro dessa classificação entraria direto no denominador, sem medida. O arquivo do Senatran já vem com uma coluna por tipo.
 **Nota de implementação:** o nome do arquivo não é chave — o mesmo relatório aparece como `frota_por_municipio_e_tipo-dez_16.xlsx`, `frota_munic_modelo_dezembro_2019.xls`, `FrotaporMunicipioetipoDEZEMBRO2025.xlsx` e `copy2_of_Frota_por_municipio_tipo_Maro_2025.xlsx`. O **rótulo do link** é estável, e é por ele que `ifode.extract.senatran` localiza o mês.
+
+## D-017 · A causa externa não está no diagnóstico principal
+**Data:** 2026-09-16
+**Decisão:** o filtro de caso passa a procurar V10–V49 numa **união ordenada** de campos de diagnóstico — `DIAG_SECUN`, `DIAGSEC1`…`DIAGSEC9`, `DIAG_PRINC` — ficando com o **primeiro código que cai na definição de caso**, não o primeiro campo preenchido. A AIH registra de qual campo veio (`campo_causa`).
+**Motivo:** a versão anterior filtrava `DIAG_PRINC`. Pela norma do próprio SIH/SUS:
+
+> "As internações provocadas por causas externas devem ser classificadas, **no diagnóstico principal, segundo o tipo de traumatismo** (capítulo XIX, causas S e T). **No diagnóstico secundário, deve ser codificado segundo a origem da causa externa** — capítulo XX (causas V a Y). Existem situações em que é permitido que o diagnóstico principal seja classificado diretamente pelo capítulo XX."
+> — DATASUS, *Morbidade Hospitalar do SUS por Causas Externas*, notas técnicas
+
+**Isto não era imprecisão: era o desfecho inteiro.** Medido no SIH (Base dos Dados, Brasil):
+
+| ano | motociclista na causa externa | motociclista em `DIAG_PRINC` |
+|---|---|---|
+| 2016 | 107.385 | **0** |
+| 2019 | 117.577 | **0** |
+| 2023 | 145.184 | **0** |
+
+O pipeline produzia painel vazio em todo ano da série. Nenhum teste pegou porque as fixtures punham o código V no principal — o único lugar onde ele não está.
+
+**Por que união e não só o secundário:** a norma permite o principal, e o dado confirma que a cauda existe. Em junho/2023, 14.235 das 14.295 AIH tiveram a causa em `DIAGSEC1`, mas **60 vieram de `DIAGSEC2`–`DIAGSEC5`** — que uma regra fixada em `DIAGSEC1` perderia.
+**Por que "o primeiro que casa" e não "o primeiro preenchido":** o campo de maior precedência quase sempre traz a lesão (`S825`, `T111`). Parar no primeiro campo não nulo descartaria a AIH inteira por causa de um S no caminho.
+**Precedência declarada:** `DIAG_SECUN` → `DIAGSEC1..9` → `DIAG_PRINC`. Havendo mais de um código válido, vence o de maior precedência; a regra é fixa e testada. Casos com dois códigos V distintos são raros e merecem contagem própria antes de qualquer estimação.
+**Consequência:** qualquer número produzido antes desta data é vazio, não apenas enviesado.
+
+## D-018 · Base dos Dados entra como segunda fonte, não como substituta
+**Data:** 2026-09-16
+**Decisão:** `ifode.extract.bigquery` lê o SIH do espelho da Base dos Dados no BigQuery, com adapter para o domínio do arquivo RD. O caminho oficial continua sendo o `.dbc` do FTP (`ifode.extract.sih`).
+**Motivo:** o FTP do DATASUS não é alcançável de todo ambiente, e o Anexo A já previa a Base dos Dados "para conferência". Duas fontes com a mesma definição de caso tornam a divergência entre elas mensurável — e ela existe.
+**Cinco divergências medidas, todas tratadas no adapter.** Cada uma produz erro silencioso, não exceção:
+
+| # | Espelho | Arquivo RD | Efeito se ignorado |
+|---|---|---|---|
+| 1 | `carater_internacao` = `1`–`6` | `01`–`06` | nexo ocupacional sai **zero** |
+| 2 | `sexo_paciente` = `Masculino`/`Feminino` | `1`/`3` | contagem de homens sai **zero** |
+| 3 | CID partido em `_categoria` (3 car.) e `_subcategoria` (4 car.) | campo único | perde metade dos códigos, e o quarto dígito mora justamente na outra coluna |
+| 4 | `sigla_uf` INTEGER e **inteiramente nula** | — | filtro por UF zera o resultado |
+| 5 | `carater_internacao` **100% preenchido, sem nulos** | tem branco | infla o denominador do nexo |
+
+**A divergência 5 é a que importa para o resultado.** A taxa de *preenchimento* desta fonte não é confiável: no RD cru há branco, aqui não há nenhum. O numerador do nexo é piso defensável; o denominador precisa vir do RD. **Reportar taxa de nexo a partir do BigQuery sem essa ressalva seria erro.**
+**A conferir:** se o espelho recodificou branco para algum valor do domínio (o que empurraria AIH para `02`, a categoria dominante) ou se descartou as linhas.
+
+## D-019 · Primeiro número do V1
+**Data:** 2026-09-16
+**Registro** — não é decisão, é o resultado que o V1 existe para produzir. Brasil, SIH via Base dos Dados:
+
+**2016–2023, motociclista (V20–V29): 965.714 internações. 62 com nexo ocupacional declarado — 17 como acidente no local de trabalho, 45 como acidente de trajeto. Uma em 15.576.**
+
+Em 2023 isoladamente: 145.761 internações de motociclista, **10** com nexo. O grupo placebo (ocupante de automóvel) teve **zero**.
+
+**Magnitude do D-010 no dado real:** a regra achatada classificava 60.511 AIH como trânsito indevidamente em 2016–2023 (V29.3, 13.706; V29.8, 46.805) — 6,3% do desfecho. E V29 sozinha é 67% de todas as internações de motociclista, contra a expectativa de "categoria de alto volume" que o D-010 registrava sem número.
+
+Os três números carregam a ressalva do D-018: o denominador do preenchimento vem de fonte que não tem branco. A ordem de grandeza do nexo (dezenas, em centenas de milhares) não depende disso.

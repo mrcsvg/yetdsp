@@ -33,6 +33,7 @@ COLS: list[str] = [
     "CAR_INT",
     "DIAG_PRINC",
     "DIAG_SECUN",
+    *[f"DIAGSEC{i}" for i in range(1, 10)],
     "VAL_TOT",
     "VAL_SH",
     "VAL_SP",
@@ -42,15 +43,25 @@ COLS: list[str] = [
     "RACA_COR",
 ]
 
+#: Campos de diagnostico varridos atras da causa externa, **em ordem de
+#: precedencia**. A norma do SIH manda a causa externa (capitulo XX) para o
+#: diagnostico secundario e deixa a lesao (capitulo XIX) no principal, mas
+#: permite o principal em alguns casos -- por isso ele entra por ultimo, e nao
+#: fica de fora. Ver D-017.
+CAMPOS_CAUSA_EXTERNA: tuple[str, ...] = (
+    "DIAG_SECUN",
+    *[f"DIAGSEC{i}" for i in range(1, 10)],
+    "DIAG_PRINC",
+)
+
 _COLS_TEXTO = (
     "MUNIC_RES",
     "MUNIC_MOV",
-    "DIAG_PRINC",
-    "DIAG_SECUN",
     "CAR_INT",
     "SEXO",
     "CNES",
     "PROC_REA",
+    *CAMPOS_CAUSA_EXTERNA,
 )
 _COLS_INT = ("DIAS_PERM", "UTI_MES_TO", "IDADE", "MORTE")
 _COLS_VALOR = ("VAL_TOT", "VAL_SH", "VAL_SP")
@@ -95,13 +106,45 @@ def normalizar(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def localizar_causa_externa(df: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
+    """Acha o codigo de causa externa de cada AIH e de qual campo ele veio.
+
+    Varre `CAMPOS_CAUSA_EXTERNA` na ordem e fica com o **primeiro codigo que
+    cai na definicao de caso** -- nao o primeiro campo preenchido. A diferenca
+    importa: o campo de precedencia mais alta costuma trazer a lesao (`S720`),
+    e parar nele descartaria a AIH inteira.
+
+    Vetorizado de proposito: isto roda sobre milhoes de AIH por competencia, e
+    um `apply` linha a linha aqui domina o tempo do pipeline.
+    """
+    codigo = pd.Series(pd.NA, index=df.index, dtype="string")
+    origem = pd.Series(pd.NA, index=df.index, dtype="string")
+
+    for campo in CAMPOS_CAUSA_EXTERNA:
+        if campo not in df.columns:
+            continue
+        candidato = df[campo].astype("string").str.strip().str.upper()
+        casa = candidato.str[:3].map(cid_mod.CATEGORIA_GRUPO).notna()
+        preencher = codigo.isna() & casa
+        if not preencher.any():
+            continue
+        codigo = codigo.mask(preencher, candidato)
+        origem = origem.mask(preencher, campo)
+
+    return codigo, origem
+
+
 def classificar(df: pd.DataFrame) -> pd.DataFrame:
     """Marca grupo de vitima, leitura do quarto digito e nexo ocupacional.
 
     Devolve so as AIH dentro da definicao de caso -- as demais saem aqui.
     """
     df = df.copy()
-    cid = df["DIAG_PRINC"].astype("string").fillna("").str.upper()
+    causa, origem = localizar_causa_externa(df)
+    df["causa_externa"] = causa
+    df["campo_causa"] = origem
+
+    cid = causa.fillna("")
     cat3 = cid.str[:3]
     dig4 = cid.str[3:4]
 

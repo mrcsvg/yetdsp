@@ -46,6 +46,20 @@ o efeito da plataforma com o crescimento da motorização. `taxa_por_populacao`
 existe para controle e para os grupos sem frota — ciclista não registra em
 RENAVAM.
 
+## Onde mora a causa externa
+
+`V20–V29` **não** está no diagnóstico principal. A norma do SIH manda a lesão
+(capítulo XIX, S/T) para `DIAG_PRINC` e a causa externa (capítulo XX) para o
+diagnóstico secundário. O filtro varre `DIAG_SECUN` → `DIAGSEC1..9` →
+`DIAG_PRINC` e fica com o primeiro código que cai na definição de caso.
+
+No SIH de 2023, 99,6% das causas vêm de `DIAGSEC1` — mas a cauda em
+`DIAGSEC2..5` é real e entra. Filtrar só `DIAG_PRINC` devolve **zero** AIH em
+todo ano de 2016 a 2023. Ver D-017.
+
+As colunas `causa_externa` e `campo_causa` acompanham cada AIH classificada,
+para que a procedência seja auditável sem reprocessar.
+
 ## Leitura do quarto dígito
 
 `internacoes_transito` não sai de uma regra única sobre o quarto dígito. As
