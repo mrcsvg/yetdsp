@@ -19,6 +19,8 @@ A dificuldade central é que **o trabalhador de plataforma não é registrado em
 | **V1 — descritivo** | Carga e custo das internações de motociclistas no SUS, série municipal | Nenhuma causal | SIH, SIM, frota RENAVAM, população IBGE |
 | **V2 — causal** | Efeito da entrada de plataforma sobre incidência | Diferenças em diferenças com adoção escalonada | V1 + cronologia de entrada por município |
 
+**O tratamento é a frota própria, não o aplicativo.** O iFood foi marketplace de 2011 a 2017 — entrega pelo motoboy do restaurante — e só passou a entregar com entregador da plataforma em 2018. Remuneração por corrida, que é a hipótese, começa aí. É o que torna o V2 viável: o denominador de frota existe desde julho/2016, então há pré-período (D-020).
+
 O V1 não é piloto descartável: todo artefato que ele produz é insumo do V2. O critério de inclusão no V1 é esse — se não reaparece no paper causal como tabela, figura ou input, não entra agora.
 
 ## Definição de caso
