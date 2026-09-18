@@ -183,9 +183,21 @@ def agregar(df: pd.DataFrame, uf: str, ano: int, mes: int) -> pd.DataFrame:
     df = df.assign(uf=uf, ano=ano, mes=mes)
     sexo = df["SEXO"] if "SEXO" in df else pd.Series(pd.NA, index=df.index, dtype="string")
     idade = df["idade_anos"]
+    homem = (sexo == "1").fillna(False)
+    faixa = idade.between(18, 39).fillna(False)
     df = df.assign(
-        _homem=(sexo == "1").fillna(False),
-        _faixa_18_39=idade.between(18, 39).fillna(False),
+        _homem=homem,
+        _faixa_18_39=faixa,
+        # H3 (D-023) precisa do CRUZAMENTO, nao das marginais: `homens` e
+        # `faixa_18_39` nao permitem reconstruir quantas AIH sao de homem de
+        # 18 a 39. Duas versoes, e a diferenca entre elas e deliberada:
+        #   `homem_18_39`          -> perfil principal, ~50% do desfecho
+        #   `condutor_homem_18_39` -> secundario, ~5%: `.4` e raro porque `.9`
+        #      (nao especificado) domina, e quem codifica `.4` em vez de `.9`
+        #      varia por hospital e UF -- pratica de codificacao correlacionada
+        #      com urbanizacao, que e o que determina a entrada da plataforma.
+        _homem_18_39=homem & faixa,
+        _perfil_entrega=df["condutor_transito"] & homem & faixa,
     )
 
     painel = (
@@ -198,6 +210,8 @@ def agregar(df: pd.DataFrame, uf: str, ano: int, mes: int) -> pd.DataFrame:
             homens=("_homem", "sum"),
             idade_media=("idade_anos", "mean"),
             faixa_18_39=("_faixa_18_39", "sum"),
+            homem_18_39=("_homem_18_39", "sum"),
+            condutor_homem_18_39=("_perfil_entrega", "sum"),
             dias_perm_total=("DIAS_PERM", "sum"),
             internacoes_uti=("uti", "sum"),
             obitos=("obito", "sum"),

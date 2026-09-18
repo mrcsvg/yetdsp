@@ -193,3 +193,25 @@ def test_juntar_sem_frota_nem_populacao(painel):
 def test_para_6_digitos_usado_na_populacao(populacao_pronta):
     assert set(populacao_pronta["municipio_res"]) == {"410690", "355030"}
     assert mun.para_6_digitos(4106902) == "410690"
+
+
+def test_numerador_do_desfecho_e_transito_nao_internacoes():
+    """D-023: o desfecho e acidente de transito, nao toda AIH do grupo."""
+    assert den.NUMERADOR_DESFECHO == "internacoes_transito"
+
+
+def test_taxa_aceita_numerador_explicito(painel, frota_pronta, populacao_pronta):
+    base = den.juntar(
+        painel.assign(internacoes_transito=painel["internacoes"] // 2),
+        frota_pronta,
+        populacao_pronta,
+    )
+    ampla = den.taxas(base)
+    estrita = den.taxas(base, numerador=den.NUMERADOR_DESFECHO)
+    assert (estrita["taxa_por_frota"] < ampla["taxa_por_frota"]).all()
+
+
+def test_numerador_inexistente_falha_alto(painel, frota_pronta, populacao_pronta):
+    base = den.juntar(painel, frota_pronta, populacao_pronta)
+    with pytest.raises(KeyError, match="numerador"):
+        den.taxas(base, numerador="coluna_que_nao_existe")

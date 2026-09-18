@@ -96,3 +96,29 @@ def test_flags_sao_bool_puro(amostra_quarto_digito):
     out = _classificado(amostra_quarto_digito)
     for coluna in ("em_transito", "condutor_transito", "embarque_desembarque", "uti", "obito"):
         assert out[coluna].dtype == bool, coluna
+
+
+def test_perfil_demografico_e_cruzamento_nao_marginal(amostra):
+    """H3 (D-023) precisa do cruzamento: as marginais nao o reconstroem."""
+    painel = agregar(_classificado(amostra), "PR", 2023, 1)
+    for coluna in ("homem_18_39", "condutor_homem_18_39"):
+        assert coluna in painel.columns
+    # V234: homem de 28, condutor -> entra nos dois
+    cwb = painel[(painel["municipio_res"] == "410690") & (painel["grupo"] == "motociclista")]
+    assert cwb["homem_18_39"].sum() == 2, "V234 (28) e V285 (34), ambos homens na faixa"
+    assert cwb["condutor_homem_18_39"].sum() == 1, "so V234 e condutor (.4)"
+
+
+def test_perfil_condutor_e_subconjunto_do_perfil_amplo(amostra_quarto_digito):
+    painel = agregar(_classificado(amostra_quarto_digito), "PR", 2023, 1)
+    assert (painel["condutor_homem_18_39"] <= painel["homem_18_39"]).all()
+    assert (painel["homem_18_39"] <= painel["internacoes"]).all()
+
+
+def test_perfil_exclui_fora_da_faixa_etaria(amostra):
+    """V134 e mulher de 45, V435 e homem de 19 -- so o segundo entra na faixa."""
+    painel = agregar(_classificado(amostra), "PR", 2023, 1)
+    ciclista = painel[painel["grupo"] == "ciclista"]
+    assert ciclista["homem_18_39"].sum() == 0
+    auto = painel[painel["grupo"] == "auto_placebo"]
+    assert auto["homem_18_39"].sum() == 1

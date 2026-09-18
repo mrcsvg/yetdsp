@@ -224,3 +224,38 @@ De **5.570 municípios**. Para os tratados a partir de 2020, o pré-período com
 Not-yet-treated compara município tratado em `t` com município que será tratado depois, mantendo a comparação dentro da população que a plataforma considera atendível. O Callaway & Sant'Anna suporta isso nativamente e é a razão de ele ser o estimador principal.
 **Custo a declarar:** com a saturação crescendo ao longo da janela, o conjunto de not-yet-treated encolhe no fim do período, e os grupos tratados tardiamente têm comparação mais fina. Reportar o tamanho do grupo de comparação por coorte de tratamento, não só o efeito agregado.
 **Alternativa rejeitada:** never-treated como comparação principal. Rejeitada pelo confundimento de urbanização acima. Pode voltar como **robustez**, restrita a municípios nunca tratados pareados por porte populacional e frota — e se o resultado divergir do principal, é sinal de que a seleção urbana está ativa, o que é informação, não fracasso.
+
+## D-023 · O desfecho não é restrito a condutor
+**Data:** 2026-09-17
+**Decisão:** o desfecho principal é **V20–V29 em trânsito** (`internacoes_transito`), não o recorte de condutor. O plano de análise dizia "quarto dígito de condutor em trânsito"; está corrigido.
+**Motivo — medido:** o quarto dígito `.4` (condutor) é **9,4%** das internações de motociclista; `.9` (não especificado) é **69,5%** (junho/2023, Brasil, 11.936 AIH). Restringir a condutor descartaria nove décimos dos casos.
+**E o problema não é só poder.** Escrever `.4` em vez de `.9` é decisão de quem codifica, e a qualidade de codificação varia por hospital e por UF — plausivelmente melhor em municípios mais urbanizados, que são exatamente os que a plataforma atende primeiro. Condicionar em `.4` condicionaria numa variável correlacionada com o tratamento: confundimento, não só ruído.
+**Consequência:** condutor permanece no painel (`internacoes_condutor`) como recorte secundário declarado, nunca como desfecho.
+
+## D-024 · H3 é o perfil demográfico, operacionalizado sem condutor
+**Data:** 2026-09-17
+**Decisão:** **H3** — o efeito se concentra em homens de 18 a 39 anos. Operacionalizada como `homem_18_39` contra o complemento.
+**Motivo:** é ortogonal ao placebo e testa outra coisa. O placebo (V40–V49) pergunta se é tendência geral **entre** tipos de veículo; H3 pergunta se é tendência geral **dentro** de motociclista. Os dois podem falhar independentemente, e falhar em qualquer um já é informação.
+**Por que sem condutor:** pela mesma medição do D-023. `homem_18_39` cobre **50,4%** do desfecho; `condutor_homem_18_39` cobre **4,7%**. O segundo fica como secundário com a limitação escrita — reportar, não interpretar isolado.
+**Consequência de código:** as marginais `homens` e `faixa_18_39` não reconstroem o cruzamento. `agregar()` passou a produzir `homem_18_39` e `condutor_homem_18_39`.
+
+## D-025 · Erros-padrão agrupados em região imediata
+**Data:** 2026-09-17
+**Decisão:** agrupar em **região imediata do IBGE** (510 regiões, mediana de 9 municípios, presente nos 5.571). Município entra como robustez, na tabela principal.
+**Motivo:** o tratamento é atribuído em município, e a regra de manual mandaria agrupar ali. Mas o dicionário do painel já registra que `municipio_res` ≠ município do acidente e que em região metropolitana a divergência é material. O mesmo transbordamento que embaralha a geografia do desfecho correlaciona os erros entre municípios vizinhos — agrupar em município subestimaria o erro-padrão.
+**Custo:** intervalos mais largos. Assumido: **efeito que só sobrevive com cluster em município nunca foi robusto.**
+**Wild cluster bootstrap** fica reservado a estimativas por coorte com poucos clusters; com 510 a assintótica basta.
+**Consequência de código:** `ifode.extract.ibge.listar_municipios()` passou a devolver `regiao_imediata`.
+
+## D-026 · Janela de evento e ∈ [−12, +24], balanceada
+**Data:** 2026-09-17
+**Decisão:** janela balanceada de −12 a +24 meses; só entram coortes com os 37 tempos observados. Versão não balanceada como robustez, com a tabela de quais coortes contribuem em cada tempo de evento.
+**Motivo — a aritmética escolhe o número:** denominador de frota começa em julho/2016 (D-015), coorte mais antiga é janeiro/2018 (D-020). Para ela, `e = −12` cai em janeiro/2017 — **seis meses de folga**. Em `e = −18` a folga é zero, e a coorte inicial cairia inteira a qualquer revisão de cobertura do Senatran.
+**Por que a folga importa mais que o pré-período extra:** as coortes iniciais são as maiores cidades, onde a operação é mais intensa. Uma janela que as descarta não é mais precisa — estima outra coisa.
+
+## D-027 · Terceiro teste de falha: denominador endógeno
+**Data:** 2026-09-17
+**Decisão:** rodar o mesmo estimador com **`frota_moto` como desfecho**. Critério pré-declarado: se o efeito sobre a frota for distinguível de zero **e** sua variação percentual for de ordem comparável à das internações, a taxa não é interpretável — o resultado principal passa a ser contagem com efeito fixo de município, e a taxa vai para o anexo com a advertência.
+**Motivo:** se a plataforma faz gente comprar moto para trabalhar, numerador e denominador sobem juntos e a taxa deixa de medir risco. **É o único risco levantado que destrói o estimando em vez de apenas enviesá-lo** — por isso é ele que vira teste, e não antecipação ou transbordamento, que ficam como robustez declarada na seção 7.
+**O viés é signável:** frota subindo com o tratamento *atenua* a taxa. Se falhar nessa direção, a estimativa é piso — somando às duas razões de piso já declaradas (D-001, diluição; D-021, contaminação do pré). **As três precisam aparecer separadas no paper**, porque têm magnitudes e remédios diferentes.
+**Riscos rejeitados como teste, mantidos como robustez:** transbordamento contaminando os *not-yet-treated* da mesma região imediata (provável, e atenua); antecipação em `e = −1, −2, −3` (redundante com o teste 2); mudança de codificação coincidente com 2018 (barata de checar, mas é ameaça à medida, não ao desenho).

@@ -15,7 +15,9 @@ ano × mês × grupo de vítima.
 | `internacoes_embarque` | int | Subconjunto de `internacoes_transito`: `.3` da estrutura padrão (embarque/desembarque). Isolado para análise de sensibilidade — ver D-010 |
 | `homens` | int | `SEXO` = 1 |
 | `idade_media` | float | Média de idade em anos completos |
-| `faixa_18_39` | int | Internações na faixa de 18 a 39 anos |
+| `faixa_18_39` | int | Internações na faixa de 18 a 39 anos (marginal) |
+| `homem_18_39` | int | **Cruzamento** de sexo e faixa — não é reconstruível das marginais. Perfil do H3; ~50% das internações de motociclista |
+| `condutor_homem_18_39` | int | O mesmo, restrito a condutor (`.4`). Recorte **secundário**: ~5% do desfecho, e `.4` vs `.9` é prática de codificação que varia por hospital e UF — ver D-023 |
 | `dias_perm_total` | int | Soma de `DIAS_PERM` |
 | `internacoes_uti` | int | `UTI_MES_TO` > 0 |
 | `obitos` | int | `MORTE` = 1 (óbito hospitalar; não captura óbito pré-hospitalar — ver SIM) |
@@ -40,6 +42,13 @@ fica `NA` — a taxa sai `NaN`, de propósito.
 **Cobertura.** Frota municipal existe a partir de **julho/2016**; população não
 tem 2022 nem 2023. Os dois buracos são no denominador e estão declarados em
 D-015 — não são imputados.
+
+**Agrupamento dos erros-padrão.** A região imediata do IBGE é o nível de
+cluster (D-025), disponível em `ifode.extract.ibge.listar_municipios()` no campo
+`regiao_imediata` — 510 regiões, presente nos 5.571 municípios. Não é o nível de
+atribuição do tratamento (município), e isso é deliberado: o transbordamento que
+faz `municipio_res` divergir do município do acidente também correlaciona os
+erros entre vizinhos.
 
 **O denominador certo é frota, não população** (D-003). Usar população confunde
 o efeito da plataforma com o crescimento da motorização. `taxa_por_populacao`
