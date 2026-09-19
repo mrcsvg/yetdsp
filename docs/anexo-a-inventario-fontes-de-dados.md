@@ -205,6 +205,8 @@ Microdado por ocorrência e por pessoa, CSV anual, desde 2007. Cobre só rodovia
 
 Indenizações por morte, invalidez e DAMS. Historicamente havia boletim estatístico da Seguradora Líder com recorte por UF e tipo de veículo. Com a transição para o SPVAT o regime de divulgação mudou — **verificar o que ainda é público antes de contar com isso**.
 
+**Por que importa para o argumento (P3).** Até 2020, 45% da arrecadação do DPVAT era vinculada ao custeio do atendimento a vítimas de trânsito no SUS. O seguro foi suspenso em 2021 e o SUS deixou de receber cerca de **R$ 580 milhões por ano** (Ipea, 2025) — no mesmo período em que a frota de entrega se expandiu. É a fonte de financiamento que existia para esta conta e foi extinta; o "repasse por corrida" da tabela de políticas em `docs/pre-projeto.md` é o seu substituto natural.
+
 ---
 
 ## Bloco 4 — Exposição à plataforma (o gargalo)
@@ -280,6 +282,43 @@ De 5.570 municípios, ~1.700 têm iFood hoje: a maioria do país nunca foi trata
 
 Os parâmetros do Ipea entram na camada F6 para converter internações em custo econômico total (perda de produção + custo médico + custo material). São estimativas antigas — atualize por deflator e declare a fonte do fator.
 
+**Referências externas para conferir a série própria:** o SUS gastou R$ 449 milhões com vítimas de trânsito em 2024 (Ipea sobre DATASUS); só internações de motociclista, R$ 233,3 milhões de janeiro a novembro de 2024 e R$ 221,5 milhões em 2023, com média de R$ 1.561 por AIH (Abramet sobre SIH). O pipeline precisa reproduzir esses números antes de somar qualquer coisa a eles.
+
+---
+
+## Bloco 6 — Resultados das plataformas (o contraste)
+
+É a perna P1 do argumento (`docs/pre-projeto.md`): a série de receita e lucro que vai ao lado da série de custo público, no mesmo eixo temporal. Nenhuma dessas fontes é dado de pesquisa — são demonstrações publicadas pela parte interessada, e é assim que devem ser citadas.
+
+### 6.1 Prosus — relatórios anuais e semestrais (iFood) · **A-**
+
+| Dimensão | Valor |
+|---|---|
+| Órgão | Prosus N.V. (controladora do iFood), listada em Amsterdã e Joanesburgo |
+| Unidade | Segmento de *food delivery* e, a partir de FY24, iFood destacado |
+| Granularidade | Nacional (Brasil), sem abertura por município |
+| Temporalidade | Ano fiscal de **abril a março**; resultados anuais em junho, semestrais em novembro |
+| Formato | PDF (`prosus.com` → *results, reports and events*) |
+| Cobertura | FY2019– com iFood identificável; antes disso, agregado em *food delivery* |
+
+**Marcos:** FY2025 (abril/2024–março/2025): receita do iFood de R$ 7,5 bilhões (relatório de sustentabilidade do próprio iFood), EBIT ajustado +178%. FY2026 (encerrado em março/2026): receita de US$ 1,87 bilhão, +40% em dólar e +28% em moeda local sem aquisições; EBITDA ajustado do ecossistema Prosus de US$ 1,3 bilhão.
+
+**Armadilhas:** o ano fiscal não bate com o calendário do SIH — converter para ano civil por interpolação declarada ou alinhar a série de custo ao ano fiscal. A moeda de reporte é dólar; usar a taxa média do período que a própria Prosus informa. Mudança de reconhecimento de receita em FY24 (nota da Prosus) quebra a série — reportar as duas bases.
+
+### 6.2 Demais plataformas · **A-** / **F**
+
+| Plataforma | Controladora | O que publica |
+|---|---|---|
+| 99Food | DiDi Global | Segmento internacional agregado; sem abertura de Brasil nem de entrega |
+| Keeta | Meituan | Segmento "novas iniciativas"; entrou no Brasil em dezembro/2025 |
+| Rappi | Capital fechado | Nada auditado; só declarações à imprensa |
+
+Para essas, a série de contraste fica restrita ao iFood, que é líder de mercado — declarar como limitação, não interpolar.
+
+### 6.3 Estudo de impacto econômico do iFood (FIPE) · **A-**
+
+Matriz insumo-produto encomendada pela empresa. É o número que o iFood usa publicamente para a contribuição ao PIB e à renda dos entregadores; o paper precisa dialogar com ele e com o Portal de Dados (4.2), em especial a diferença entre **hora em rota** e hora trabalhada.
+
 ---
 
 ## Tabela consolidada
@@ -302,6 +341,7 @@ Os parâmetros do Ipea entram na camada F6 para converter internações em custo
 | 4.2 | Portal iFood | Não | Nacional / capitais | Anual | 2022– | A- | Contexto |
 | 4.3 | Volume de pedidos | — | — | — | — | **F** | **Lacuna da H2** |
 | 4.4 | Datas de entrada | — | Município | — | — | **N** | **Tratamento — caminho crítico** |
+| 6.1 | Prosus / iFood resultados | Não | Nacional | Anual (abr–mar) | FY2019– | A- | **Contraste de lucro (P1)** |
 
 ---
 
