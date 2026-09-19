@@ -120,3 +120,33 @@ def populacao(anos: list[int] | list[str]) -> tuple[list[dict], list[str]]:
                     )
     log.info("populacao: %d linhas para %s", len(linhas), ", ".join(usar))
     return linhas, faltando
+
+
+#: IPCA numero-indice (base dez./1993 = 100), mensal, Brasil. SIDRA tabela 1737.
+SIDRA = "https://apisidra.ibge.gov.br/values"
+TABELA_IPCA = "1737"
+VARIAVEL_IPCA = "2266"
+
+
+def linhas_ipca(bruto: list[dict]) -> list[dict]:
+    """Resposta do SIDRA -> `[{"periodo": "202301", "indice": 6508.4}, ...]`.
+
+    A primeira linha da resposta e o cabecalho (nomes das colunas), nao dado.
+    """
+    linhas = []
+    for r in bruto[1:]:
+        valor = r.get("V")
+        if valor in (None, "", "-", "...", "X"):
+            continue
+        linhas.append({"periodo": str(r["D3C"]), "indice": float(valor)})
+    return linhas
+
+
+def ipca() -> list[dict]:
+    """Serie mensal completa do IPCA numero-indice, desde dezembro de 1979."""
+    url = f"{SIDRA}/t/{TABELA_IPCA}/n1/all/v/{VARIAVEL_IPCA}/p/all"
+    linhas = linhas_ipca(_get_json(url))
+    if not linhas:
+        raise ValueError("SIDRA devolveu a serie do IPCA vazia")
+    log.info("IPCA: %d meses, ate %s", len(linhas), linhas[-1]["periodo"])
+    return linhas

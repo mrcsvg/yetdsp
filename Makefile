@@ -1,4 +1,4 @@
-.PHONY: help setup painel diagnostico denominadores lint test limpar
+.PHONY: help setup painel diagnostico denominadores custo lint test limpar
 
 PYTHON ?= python
 
@@ -22,6 +22,9 @@ diagnostico: ## preenchimento do CAR_INT por ano (roda so com o painel ja pronto
 
 denominadores: ## frota de moto (Senatran) e populacao (IBGE) -- so precisa de HTTPS
 	$(PYTHON) scripts/denominadores.py --inicio $(DEN_INI) --fim $(FIM)
+
+custo: ## val_tot deflacionado (IPCA) e custo social (Ipea) por ano e UF -- so baixa o IPCA
+	$(PYTHON) scripts/custo.py
 
 lint:
 	ruff check . && ruff format --check .

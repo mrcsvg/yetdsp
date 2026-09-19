@@ -24,7 +24,7 @@ outras três pernas sem documento. Este arquivo corrige isso.
 |---|---|---|---|---|
 | **P1** | **Eles lucram.** | Receita e lucro operacional das plataformas, ano a ano, como série de contraste ao custo público | Relatórios anuais da Prosus (iFood); relatório de sustentabilidade do iFood; DiDi (99Food) e Meituan (Keeta) reportam segmento | **Ausente.** Nenhuma fonte no inventário até esta versão — ver Bloco 6 do anexo A |
 | **P2** | **O trabalho é precário.** | Informalidade, cobertura previdenciária, jornada e renda-hora dos plataformizados | PNAD Contínua, módulo de plataformas (2022, 2024, 2025) | **Só como nota de rodapé** (anexo A, 4.1). Nenhum script, nenhuma tabela |
-| **P3** | **Nós pagamos.** | (a) Valor pago pelo SUS, deflacionado, por internação de motociclista, e o custo econômico via parâmetros do Ipea; (b) a lacuna entre o que o SUS interna e o que a Previdência reconhece como acidente de trabalho; (c) quanto disso é atribuível à plataforma | SIH `VAL_TOT`; Ipea TD 2565; INSS benefícios (espécies 31 × 91); o próprio estimador do V2 | **Parcial.** `val_tot` está no painel mas nenhum alvo o usa; a deflação e a camada F6 (custo) não existem; a lacuna SIH × INSS foi tirada da rota crítica em D-002 e nunca voltou |
+| **P3** | **Nós pagamos.** | (a) Valor pago pelo SUS, deflacionado, por internação de motociclista, e o custo econômico via parâmetros do Ipea; (b) a lacuna entre o que o SUS interna e o que a Previdência reconhece como acidente de trabalho; (c) quanto disso é atribuível à plataforma | SIH `VAL_TOT`; Ipea TD 2565; INSS benefícios (espécies 31 × 91); o próprio estimador do V2 | **Parcial.** (a) existe: `make custo` (D-029). (b) foi tirada da rota crítica em D-002 e nunca voltou. (c) é o V2 |
 | **P4** | **Eles morrem ou se acidentam — e o sistema não vê.** | Internações, UTI, óbito hospitalar e pré-hospitalar; e a fração com nexo ocupacional registrado | SIH, SIM, `CAR_INT` | **É o que existe.** D-019: 965.714 internações em 2016–2023, 62 com nexo. Uma em 15.576 |
 
 A perna P3(c) é o V2 inteiro. As outras três são descritivas e **não dependem
@@ -125,10 +125,11 @@ não entra.** O V2 continua sendo a maior peça, mas não é o critério.
 
 ## O que falta, em ordem
 
-1. **P3(a) — custo.** Deflacionar `val_tot` (IPCA), converter em custo
+1. **P3(a) — custo.** ~~Deflacionar `val_tot` (IPCA), converter em custo
    econômico com os parâmetros do Ipea (camada F6), e escrever a série
-   nacional 2008– por ano. É um alvo de `make` e uma tabela. Não depende de
-   pré-registro.
+   nacional 2008– por ano.~~ **Feito: `make custo` (D-029).** Falta rodar
+   sobre o painel nacional completo e conferir contra as referências externas
+   do anexo A, Bloco 5.
 2. **P3(b) — lacuna SIH × INSS.** Baixar benefícios concedidos (espécies 31 e
    91) com CID V20–V29, por UF e ano, e pôr ao lado do SIH. D-002 prometeu
    isso como "capítulo próprio" e nunca foi agendado.

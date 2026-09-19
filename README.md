@@ -51,6 +51,7 @@ docs/                inventário de fontes, dicionário do painel, log de decis�
 docs/pre-registro/   plano de análise (depositar no OSF antes de cruzar tratamento × desfecho)
 src/ifode/cid.py     definição de caso: grupos CID-10 e leitura do quarto dígito
 src/ifode/frota.py   tipos de veículo do RENAVAM que correspondem a V20–V29
+src/ifode/custo.py   parâmetros de custo social por vítima (Ipea TD 2565), com fonte e data-base
 src/ifode/municipios.py  ponte nome ↔ código IBGE, com a tabela de apelidos revisada
 src/ifode/extract/   download das fontes — única camada que toca a rede
                      (sih.py = FTP DATASUS; bigquery.py = espelho Base dos Dados)
@@ -77,10 +78,16 @@ make test          # roda sem rede e sem dado — a definição de caso é test�
 make painel        # baixa SIH e monta o painel município × mês  (precisa de FTP do DATASUS)
 make diagnostico   # preenchimento do CAR_INT por ano, UF e município
 make denominadores # frota de moto (Senatran) e população (IBGE) — só HTTPS
+make custo         # o que o SUS pagou (deflacionado) e o custo social (Ipea) — só baixa o IPCA
 ```
 
 `make diagnostico` lê o painel já montado e escreve `car_int_por_ano.csv`,
 `car_int_por_uf_ano.csv` e `car_int_por_municipio.csv` em `output/tabelas/`.
+
+`make custo` lê o mesmo painel, baixa o IPCA (SIDRA 1737) e escreve
+`custo_por_ano.csv` e `custo_por_uf_ano.csv`: valor pago pelo SUS a preços
+constantes (piso), custo social pelos parâmetros do Ipea (ordem de grandeza) e
+perda de produção separada. Os três não se somam — ver D-029.
 
 Os alvos passam pelo interpretador ativo (`$(PYTHON)`, padrão `python`). Para
 apontar outro: `make test PYTHON=python3.11`.

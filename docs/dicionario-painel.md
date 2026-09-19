@@ -92,6 +92,25 @@ O denominador do nexo é o preenchimento, **nunca** `internacoes`. Dividir por
 dizer "não foi trabalho" — e faz a subnotificação parecer menor do que é.
 Ambas saem prontas de `ifode.analyze.car_int` e de `make diagnostico`.
 
+## Tabelas de custo (`make custo`)
+
+Saem de `scripts/custo.py` em `output/tabelas/custo_por_ano.csv` (ano × grupo) e
+`custo_por_uf_ano.csv` (UF × ano, só motociclista). Tudo em reais da competência
+`base_precos`, deflacionado pelo IPCA número-índice (SIDRA 1737 / 2266).
+
+| Campo | Descrição |
+|---|---|
+| `val_tot_nominal` | Soma de `val_tot` como veio do SIH, reais correntes de cada competência |
+| `val_tot_real` | O mesmo, linha a linha a reais de `base_precos`. **O que o SUS pagou — piso** |
+| `val_por_internacao_real` | `val_tot_real / internacoes` |
+| `custo_social_real` | `(internacoes − obitos) × ferido grave + obitos × morto`, parâmetros do Ipea TD 2565 levados de dez/2014 a `base_precos`. **Ordem de grandeza, não valor pontual** — ver D-029 |
+| `hospitalar_ipea_real` | Componente hospitalar do custo social. Comparar com `val_tot_real` mede quanto a tabela SUS fica abaixo do custo estimado |
+| `perda_producao_real` | Componente de perda de produção. Recai sobre a família do acidentado, não sobre o SUS |
+| `base_precos` | `AAAA-MM` dos reais em que a tabela está |
+
+**Os três valores não se somam.** `val_tot_real` é o que foi pago; `custo_social_real` é uma
+estimativa do que a sociedade perdeu, e já contém a parcela hospitalar.
+
 ## Advertências
 
 - `municipio_res` ≠ município do acidente. Em região metropolitana a divergência
