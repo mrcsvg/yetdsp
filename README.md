@@ -6,7 +6,11 @@ Remuneração por peça em plataformas de entrega e internações de motociclist
 
 ---
 
-## A pergunta
+## O objetivo
+
+Enquanto as plataformas de entrega lucram, o trabalho do entregador se precariza, o motociclista morre ou se acidenta, e a conta chega ao SUS — pago por todos nós. O projeto mede as quatro coisas lado a lado e termina em proposta de política pública. O argumento inteiro, com fontes e o que falta, está em `docs/pre-projeto.md` (D-028).
+
+## A pergunta causal
 
 A remuneração por corrida cria incentivo à velocidade e ao volume. A hipótese é que a entrada e o adensamento de plataformas de entrega em um município elevam a incidência de internações de motociclistas por acidente de transporte, e que esse custo é absorvido pelo SUS sem contrapartida.
 
@@ -21,7 +25,7 @@ A dificuldade central é que **o trabalhador de plataforma não é registrado em
 
 **O tratamento é a frota própria, não o aplicativo.** O iFood foi marketplace de 2011 a 2017 — entrega pelo motoboy do restaurante — e só passou a entregar com entregador da plataforma em 2018. Remuneração por corrida, que é a hipótese, começa aí. É o que torna o V2 viável: o denominador de frota existe desde julho/2016, então há pré-período (D-020).
 
-O V1 não é piloto descartável: todo artefato que ele produz é insumo do V2. O critério de inclusão no V1 é esse — se não reaparece no paper causal como tabela, figura ou input, não entra agora.
+O V1 não é piloto descartável: é onde moram três das quatro pernas do argumento (custo público, precariedade, invisibilidade do nexo) e todo artefato dele é insumo do V2. O critério de inclusão é o de `docs/pre-projeto.md`: se não sustenta uma das quatro pernas ou uma linha da tabela de políticas, não entra (D-028).
 
 ## Definição de caso
 
@@ -42,7 +46,8 @@ Denominador de moto: frota RENAVAM municipal. **Bicicleta não tem denominador**
 ## Estrutura
 
 ```
-docs/                pré-projeto, inventário de fontes, dicionário do painel, decisões
+docs/pre-projeto.md  o argumento em quatro pernas, o que falta e o cardápio de políticas
+docs/                inventário de fontes, dicionário do painel, log de decisões
 docs/pre-registro/   plano de análise (depositar no OSF antes de cruzar tratamento × desfecho)
 src/ifode/cid.py     definição de caso: grupos CID-10 e leitura do quarto dígito
 src/ifode/frota.py   tipos de veículo do RENAVAM que correspondem a V20–V29
